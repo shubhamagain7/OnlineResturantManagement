@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Resturant_Api.Models;
+using Resturant_Api.Repository;
 
 namespace Resturant_Api.Controllers
 {
@@ -14,95 +15,99 @@ namespace Resturant_Api.Controllers
     public class OrdersController : ControllerBase
     {
         readonly log4net.ILog _log4net;
-        private readonly ResturantContext _context;
+        IOrdersRep db;
 
-        public OrdersController(ResturantContext context)
+        public OrdersController(IOrdersRep _db)
         {
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(OrdersController));
         }
 
         // GET: api/Orders
         [HttpGet]
-        public IEnumerable<Order> GetOrders()
+        public IActionResult GetUsers()
         {
-            return  _context.Orders.ToList();
+
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
-        public Order GetOrder(int id)
+        public IActionResult GetUser(int id)
         {
-            var order =  _context.Orders.Find(id);
-
-
-            return order;
-        }
-
-        // PUT: api/Orders/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public IActionResult PutOrder(int id, Order order)
-        {
-
-
-            //_context.Entry(order).State = EntityState.Modified;
-            Order o = _context.Orders.Find(id);
-            o.PhoneNo = order.PhoneNo;
-            o.FoodId = order.FoodId;
-           
-            _context.Orders.Update(o);
+            Order data = new Order();
             try
             {
-                _context.SaveChanges();
-                return Ok("Order Updated!!");
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!OrderExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(data);
             }
-
         }
 
+
+        
         // POST: api/Orders
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Order>> PostOrder(Order order)
+        public IActionResult Post([FromBody] Order user)
         {
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var res = db.AddDetail(user);
+                    if (res != 0)
+                        return Ok(res);
 
-            return CreatedAtAction("GetOrder", new { id = order.OrderId }, order);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
+
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Order>> DeleteOrder(int id)
+        public IActionResult Delete(int id)
         {
-            var order = await _context.Orders.FindAsync(id);
-            if (order == null)
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Orders.Remove(order);
-            await _context.SaveChangesAsync();
-
-            return order;
+                return BadRequest(id);
+            }
         }
 
-        private bool OrderExists(int id)
-        {
-            return _context.Orders.Any(e => e.OrderId == id);
-        }
+       
     }
 }

@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Resturant_Api.Models;
+using Resturant_Api.Repository;
 
 namespace Resturant_Api
 {
@@ -30,6 +31,9 @@ namespace Resturant_Api
             services.AddControllers();
             services.AddDbContext<ResturantContext>(options => { options.UseSqlServer(Configuration.GetConnectionString("Rtable")); });
             services.AddSwaggerGen();
+            services.AddScoped<IMenusRep, MenuRep>();
+            services.AddScoped<IOrdersRep, OrderRep>();
+            services.AddScoped<ICustomersRep, CustomerRep>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

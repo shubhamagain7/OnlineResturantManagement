@@ -10,10 +10,12 @@ namespace Resturant_Api.Models
     {
         public ResturantContext(DbContextOptions options) : base(options)
         { }
+        public ResturantContext()
+        { }
 
-        public DbSet<Customer> Customers { get; set; }
-        public DbSet<Menu> Menu  { get; set; }
-        public DbSet<Order> Orders{ get; set; }
+        public virtual DbSet<Customer> Customers { get; set; }
+        public virtual DbSet<Menu> Menu  { get; set; }
+        public virtual DbSet<Order> Orders{ get; set; }
 
 
 

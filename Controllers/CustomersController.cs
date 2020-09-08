@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Resturant_Api.Models;
+using Resturant_Api.Repository;
 
 namespace Resturant_Api.Controllers
 {
@@ -14,111 +15,126 @@ namespace Resturant_Api.Controllers
     public class CustomersController : ControllerBase
     {
         readonly log4net.ILog _log4net;
-        private readonly ResturantContext _context;
+        ICustomersRep db;
 
-        public CustomersController(ResturantContext context)
+        public CustomersController(ICustomersRep _db)
         {
 
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(CustomersController));
         }
 
         // GET: api/Customers
         [HttpGet]
-        public IEnumerable<Customer> GetCustomers()
+        public IActionResult GetUsers()
         {
-            return _context.Customers.ToList();
+            
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Customers/5
         [HttpGet("{id}")]
-        public Customer GetCustomer(string id)
+        public IActionResult GetUser(string id)
         {
-            var customer = _context.Customers.Find(id);
-
-            return customer;
+            Customer data = new Customer();
+            try
+            {
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
+            }
+            catch (Exception)
+            {
+                return BadRequest(data);
+            }
         }
 
         // PUT: api/Customers/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public IActionResult PutCustomer(string id, Customer customer)
+        public IActionResult Put(string id, [FromBody] Customer user)
         {
-
-
-            // _context.Entry(customer).State = EntityState.Modified;
-            Customer c = _context.Customers.Find(id);
-            c.FirstName = customer.FirstName;
-            c.LastName = customer.LastName;
-            c.Password = customer.Password;
-            _context.Customers.Update(c);
-            try
+            if (ModelState.IsValid)
             {
-                _context.SaveChanges();
-                return Ok("Customer Updation Success");
-                    
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CustomerExists(id))
+                try
                 {
-                    return NotFound();
+                    var result = db.UpdateDetail(id, user);
+                    if (result != 1)
+                        return BadRequest(result);
+
+                    return Ok(result);
                 }
-                else
+                catch (Exception ex)
                 {
-                    throw;
+                    if (ex.GetType().FullName ==
+                             "Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException")
+                    {
+                        return NotFound();
+                    }
+
+                    return BadRequest();
                 }
             }
 
-            
+            return BadRequest();
         }
-
         // POST: api/Customers
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
+        public IActionResult Post([FromBody] Customer user)
         {
-            _context.Customers.Add(customer);
-            try
+            if (ModelState.IsValid)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (CustomerExists(customer.PhoneNo))
+                try
                 {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                    var res = db.AddDetail(user);
+                    if (res != null)
+                        return Ok(res);
 
-            return CreatedAtAction("GetCustomer", new { id = customer.PhoneNo }, customer);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
-
         // DELETE: api/Customers/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Customer>> DeleteCustomer(string id)
+        public IActionResult Delete(string id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return customer;
+                return BadRequest(id);
+            }
         }
 
-        private bool CustomerExists(string id)
-        {
-            return _context.Customers.Any(e => e.PhoneNo == id);
-        }
+       
     }
 }

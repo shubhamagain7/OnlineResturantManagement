@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Resturant_Api.Models;
+using Resturant_Api.Repository;
 
 namespace Resturant_Api.Controllers
 {
@@ -14,97 +15,98 @@ namespace Resturant_Api.Controllers
     public class MenusController : ControllerBase
     {
         readonly log4net.ILog _log4net;
-        private readonly ResturantContext _context;
+        IMenusRep db;
 
-        public MenusController(ResturantContext context)
+        public MenusController(IMenusRep _db)
         {
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(MenusController));
         }
 
         // GET: api/Menus
         [HttpGet]
-        public IEnumerable<Menu> GetMenu()
+        public IActionResult GetUsers()
         {
-            return  _context.Menu.ToList();
+
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Menus/5
         [HttpGet("{id}")]
-        public Menu GetMenu(int id)
+        public IActionResult GetUser(int id)
         {
-            var menu = _context.Menu.Find(id);
-
-            return menu;
-        }
-
-        // PUT: api/Menus/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public IActionResult PutMenu(int id, Menu menu)
-        {
-
-
-            // _context.Entry(menu).State = EntityState.Modified;
-            Menu m = _context.Menu.Find(id);
-            m.Name = menu.Name;
-            m.Price = menu.Price;
-            m.Type = menu.Type;
-            _context.Menu.Update(m);
-
+            Menu data = new Menu();
             try
             {
-                 _context.SaveChanges();
-                return Ok("Menu Updation Success");
-
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception)
             {
-                if (!MenuExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return BadRequest(data);
             }
-
-           
         }
+
+      
 
         // POST: api/Menus
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Menu>> PostMenu(Menu menu)
+        public IActionResult Post([FromBody] Menu user)
         {
-            _context.Menu.Add(menu);
-            await _context.SaveChangesAsync();
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var res = db.AddDetail(user);
+                    if (res != 0)
+                        return Ok(res);
 
-            return CreatedAtAction("GetMenu", new { id = menu.Id }, menu);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
 
         // DELETE: api/Menus/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Menu>> DeleteMenu(int id)
+        public IActionResult Delete(int id)
         {
-            var menu = await _context.Menu.FindAsync(id);
-            if (menu == null)
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Menu.Remove(menu);
-            await _context.SaveChangesAsync();
-
-            return menu;
+                return BadRequest(id);
+            }
         }
 
-        private bool MenuExists(int id)
-        {
-            return _context.Menu.Any(e => e.Id == id);
-        }
+      
     }
 }
